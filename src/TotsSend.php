@@ -23,6 +23,7 @@ class TotsSend
     public function __construct($apiKey)
     {
         $this->apiKey = $apiKey;
+        $this->guzzle = new \GuzzleHttp\Client();
     }
 
     public function send($email, $template, $params = [])
@@ -38,8 +39,8 @@ class TotsSend
     {
         $body = null;
         if($params != null){
+            $params['api_key'] = $this->apiKey;
             $body = json_encode($params);
-            $body['api_key'] = $this->apiKey;
         }
 
         $request = new Request(
