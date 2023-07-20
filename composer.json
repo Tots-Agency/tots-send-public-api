@@ -1,0 +1,22 @@
+{
+    "name": "tots/tots-send-api",
+    "description": "The library for Tots SEND",
+    "version": "0.0.1",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "TotsSend\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Matias Camiletti",
+            "email": "matias.camiletti@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {
+        "php": "^8.0"
+    }
+}
