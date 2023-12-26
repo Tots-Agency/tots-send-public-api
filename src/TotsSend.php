@@ -35,6 +35,17 @@ class TotsSend
         ]);
     }
 
+    public function sendRaw($email, $subject, $html, $params = [], $plainText = '')
+    {
+        return $this->generateRequest('POST', 'api/send-raw', [
+            'email' => $email,
+            'subject' => $subject,
+            'html' => $html,
+            'vars' => $params,
+            'plain_text' => $plainText
+        ]);
+    }
+
     protected function generateRequest($method, $path, $params = null)
     {
         $body = null;

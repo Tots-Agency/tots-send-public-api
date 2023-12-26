@@ -1,7 +1,7 @@
 {
     "name": "tots/tots-send-api",
     "description": "The library for Tots SEND",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "type": "library",
     "license": "MIT",
     "autoload": {
