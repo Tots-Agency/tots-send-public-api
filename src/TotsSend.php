@@ -4,7 +4,7 @@ namespace TotsSend;
 
 use GuzzleHttp\Psr7\Request;
 
-class TotsSend 
+class TotsSend
 {
     /**
      * URL de la API
@@ -26,16 +26,25 @@ class TotsSend
         $this->guzzle = new \GuzzleHttp\Client();
     }
 
-    public function send($email, $template, $params = [])
+    /**
+     * Send an email
+     * 
+     * @param string $email
+     * @param string $template
+     * @param array $params
+     * @param array $files Format: [['name' => 'filename.pdf', 'path' => '/path/to/file.pdf']] or [['name' => 'filename.pdf', 'content' => '...']] or [\SplFileInfo]
+     * @return mixed
+     */
+    public function send($email, $template, $params = [], $files = [])
     {
         return $this->generateRequest('POST', 'api/send', [
             'email' => $email,
             'template' => $template,
             'vars' => $params
-        ]);
+        ], $files);
     }
 
-    public function sendRaw($email, $subject, $html, $params = [], $plainText = '')
+    public function sendRaw($email, $subject, $html, $params = [], $plainText = '', $files = [])
     {
         return $this->generateRequest('POST', 'api/send-raw', [
             'email' => $email,
@@ -43,29 +52,73 @@ class TotsSend
             'html' => $html,
             'vars' => $params,
             'plain_text' => $plainText
-        ]);
+        ], $files);
     }
 
-    protected function generateRequest($method, $path, $params = null)
+    protected function generateRequest($method, $path, $params = null, $files = [])
     {
-        $body = null;
-        if($params != null){
-            $params['api_key'] = $this->apiKey;
-            $body = json_encode($params);
+        // Add API Key
+        $params['api_key'] = $this->apiKey;
+
+        // Convert params to multipart
+        $multipart = $this->paramsToMultipart($params);
+
+        // Add Files
+        if (is_array($files)) {
+            foreach ($files as $file) {
+                if ($file instanceof \SplFileInfo) {
+                    $multipart[] = [
+                        'name' => 'files[]',
+                        'contents' => fopen($file->getRealPath(), 'r'),
+                        'filename' => $file->getFilename()
+                    ];
+                } else if (is_array($file) && isset($file['path'], $file['name'])) {
+                    $multipart[] = [
+                        'name' => 'files[]',
+                        'contents' => fopen($file['path'], 'r'),
+                        'filename' => $file['name']
+                    ];
+                } else if (is_array($file) && isset($file['content'], $file['name'])) {
+                    $multipart[] = [
+                        'name' => 'files[]',
+                        'contents' => $file['content'],
+                        'filename' => $file['name']
+                    ];
+                }
+            }
         }
 
-        $request = new Request(
-            $method, 
-            self::BASE_URL . $path, 
-            [
-                'Content-Type' => 'application/json',
-            ], $body);
+        $response = $this->guzzle->request($method, self::BASE_URL . $path, [
+            'multipart' => $multipart
+        ]);
 
-        $response = $this->guzzle->send($request);
-        if($response->getStatusCode() == 200){
+        if ($response->getStatusCode() == 200) {
             return json_decode($response->getBody()->getContents());
         }
 
         return null;
+    }
+
+    /**
+     * Convert params to multipart format
+     */
+    protected function paramsToMultipart($params, $prefix = '')
+    {
+        $multipart = [];
+
+        foreach ($params as $key => $value) {
+            $newKey = $prefix === '' ? $key : $prefix . '[' . $key . ']';
+
+            if (is_array($value)) {
+                $multipart = array_merge($multipart, $this->paramsToMultipart($value, $newKey));
+            } else {
+                $multipart[] = [
+                    'name' => $newKey,
+                    'contents' => $value
+                ];
+            }
+        }
+
+        return $multipart;
     }
 }
